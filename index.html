@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cerebrum Cockpit</title>
+  <meta name="color-scheme" content="light dark">
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --panel: #111827;
+      --panel-2: #0f1625;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #60a5fa;
+      --green: #10b981;
+      --red: #ef4444;
+      --orange: #f59e0b;
+      --yellow: #fbbf24;
+      --blue: #3b82f6;
+      --teal: #14b8a6;
+      --purple: #8b5cf6;
+      --border: #1f2937;
+      --card-shadow: 0 6px 24px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.03);
+      --radius: 14px;
+      --radius-sm: 10px;
+      --radius-lg: 18px;
+    }
+
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(1200px 800px at 75% -10%, rgba(33, 87, 243, 0.15), transparent),
+                  radial-gradient(900px 700px at -10% 20%, rgba(20, 184, 166, 0.12), transparent),
+                  var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      line-height: 1.5;
+    }
+
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; gap: 12px;
+      background: linear-gradient(180deg, rgba(8, 12, 20, 0.85), rgba(8, 12, 20, 0.6) 60%, rgba(8, 12, 20, 0.0));
+      backdrop-filter: saturate(140%) blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .topbar .left { display: flex; align-items: center; gap: 12px; }
+    .title {
+      display: flex; align-items: center; gap: 12px;
+      font-weight: 700; letter-spacing: 0.2px; font-size: 18px;
+      padding: 8px 12px; border-radius: 12px;
+      background: linear-gradient(180deg, rgba(59,130,246,0.12), rgba(59,130,246,0.06));
+      box-shadow: inset 0 0 0 1px rgba(59,130,246,0.25);
+    }
+    .status-dot {
+      width: 10px; height: 10px; border-radius: 999px; background: var(--red);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.25), 0 0 18px rgba(239,68,68,0.35);
+      transition: background 200ms, box-shadow 200ms;
+    }
+    .status-dot.ok { background: var(--green); box-shadow: 0 0 0 3px rgba(16,185,129,0.25), 0 0 18px rgba(16,185,129,0.35); }
+
+    .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .btn {
+      --btn-bg: linear-gradient(180deg, #111827, #0b1220);
+      border: 1px solid var(--border);
+      background: var(--btn-bg);
+      color: var(--text);
+      padding: 8px 12px; border-radius: 10px;
+      font-weight: 600; letter-spacing: 0.2px; cursor: pointer;
+      box-shadow: 0 2px 0 rgba(0,0,0,0.3);
+      transition: transform 120ms, box-shadow 120ms, background 150ms;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
+    .btn.primary { --btn-bg: linear-gradient(180deg, #185adb, #133f9e); border-color: rgba(99,102,241,0.45); }
+    .btn.ghost { background: transparent; border-color: var(--border); }
+
+    .toggle {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border);
+      padding: 8px 10px; border-radius: 10px; background: linear-gradient(180deg, #0e1422, #0a111f);
+      font-weight: 600;
+    }
+    .toggle input { accent-color: var(--blue); width: 18px; height: 18px; }
+
+    .container { max-width: 1200px; margin: 18px auto; padding: 0 16px 32px; }
+
+    .grid {
+      display: grid; gap: 16px;
+      grid-template-columns: repeat(12, 1fr);
+    }
+    .card {
+      grid-column: span 12;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.0)), radial-gradient(120% 120% at 0% 0%, rgba(30,64,175,0.08), transparent 60%), var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--card-shadow);
+      padding: 16px;
+    }
+    @media (min-width: 780px) {
+      .span-6 { grid-column: span 6; }
+      .span-4 { grid-column: span 4; }
+    }
+
+    .card-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+    .card-title h2 { margin: 0; font-size: 15px; letter-spacing: 0.4px; text-transform: uppercase; color: #cbd5e1; }
+
+    .headline {
+      font-size: 22px; line-height: 1.3; font-weight: 800; letter-spacing: 0.2px; margin: 6px 0 12px;
+      background: linear-gradient(180deg, #fff, #cfe2ff);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: 0 0 25px rgba(59,130,246,0.15);
+    }
+
+    .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; font-weight: 700; letter-spacing: 0.3px;
+      border: 1px solid var(--border); background: linear-gradient(180deg, #0e1626, #0a121f); color: var(--text);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+    .dot { width: 8px; height: 8px; border-radius: 999px; }
+
+    .list { margin: 12px 0 0; padding-left: 18px; color: var(--muted); }
+    .list li { margin: 6px 0; }
+
+    .kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-top: 8px; }
+    .kpi { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.0)), var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+    .kpi .label { color: var(--muted); font-size: 12px; letter-spacing: 0.3px; text-transform: uppercase; }
+    .kpi .value { margin-top: 6px; font-size: 20px; font-weight: 800; }
+
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    .pre { background: #0a0f1a; border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: #c8d5ff; overflow: auto; max-height: 50vh; }
+
+    .drawer {
+      position: fixed; inset: 0; display: none; z-index: 60;
+      background: rgba(2,6,23,0.6);
+      backdrop-filter: blur(4px);
+    }
+    .drawer.open { display: block; }
+    .drawer-panel {
+      position: absolute; right: 0; top: 0; height: 100%; width: min(720px, 96vw);
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.0)), var(--panel);
+      border-left: 1px solid var(--border);
+      box-shadow: -10px 0 30px rgba(0,0,0,0.35);
+      padding: 16px; overflow: auto;
+    }
+
+    .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .grow { flex: 1 1 auto; }
+    .input, .textarea {
+      width: 100%; background: #0a0f1a; color: var(--text); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit;
+    }
+    .textarea { min-height: 180px; resize: vertical; }
+
+    .note { color: var(--muted); font-size: 12px; }
+    .pill { padding: 4px 8px; border-radius: 999px; font-weight: 700; letter-spacing: .3px; border: 1px solid var(--border); }
+
+    .error { color: #fecaca; }
+    .success { color: #bbf7d0; }
+
+    footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px 0 32px; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="left">
+      <div id="statusDot" class="status-dot" title="Health status"></div>
+      <div class="title">Cerebrum Cockpit</div>
+      <div id="lastUpdated" class="pill note">--:--</div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="refreshBtn">Refresh</button>
+      <label class="toggle"><input type="checkbox" id="autoRefresh"> Auto-refresh 5s</label>
+      <button class="btn" id="pasteBtn">Paste JSON</button>
+      <button class="btn ghost" id="diagnosticsBtn">Diagnostics</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="grid">
+      <article class="card span-6" id="marketCard">
+        <div class="card-title"><h2>Market (K1)</h2></div>
+        <div id="marketHeadline" class="headline">?</div>
+        <div class="badges">
+          <div id="regimeBadge" class="badge"><span class="dot" style="background:#6b7280"></span><span>Regime: ?</span></div>
+          <div id="dqBadge" class="badge"><span class="dot" style="background:#6b7280"></span><span>Data: UNKNOWN</span></div>
+        </div>
+        <ul id="whatChanged" class="list"></ul>
+      </article>
+
+      <article class="card span-6" id="riskCard">
+        <div class="card-title"><h2>Risk (K3 + RiskDecision)</h2></div>
+        <div class="kpi-row">
+          <div class="kpi">
+            <div class="label">Net Exposure</div>
+            <div id="netExposure" class="value">?%</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Drawdown</div>
+            <div id="drawdown" class="value">?%</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Circuit Breaker</div>
+            <div id="circuit" class="value">?</div>
+          </div>
+          <div class="kpi">
+            <div class="label">Decision</div>
+            <div id="decision" class="value">?</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card span-6" id="toolsCard">
+        <div class="card-title"><h2>Tools</h2><span id="toolsCount" class="pill">0</span></div>
+        <div class="pre mono" id="toolsPre">[]</div>
+      </article>
+
+      <article class="card span-6" id="tradeCard">
+        <div class="card-title"><h2>Trade Payload</h2><button class="btn" id="callTradeBtn">Call RPC</button></div>
+        <div class="pre mono" id="tradePre">{}</div>
+      </article>
+    </section>
+  </main>
+
+  <div id="pasteDrawer" class="drawer" aria-hidden="true">
+    <div class="drawer-panel">
+      <div class="card-title"><h2>Paste JSON</h2><div class="row"><button class="btn" id="applyPasteBtn">Apply</button><button class="btn ghost" id="closePasteBtn">Close</button></div></div>
+      <div class="row"><textarea id="pasteArea" class="textarea mono" placeholder='{"market": {"headline_one_liner":"..."}}'></textarea></div>
+      <p class="note">Supported keys: <span class="mono">health</span>, <span class="mono">market</span>, <span class="mono">risk</span>, <span class="mono">tools</span>, <span class="mono">trade_payload</span></p>
+    </div>
+  </div>
+
+  <div id="diagnosticsDrawer" class="drawer" aria-hidden="true">
+    <div class="drawer-panel">
+      <div class="card-title"><h2>Diagnostics</h2><button class="btn ghost" id="closeDiagBtn">Close</button></div>
+
+      <div class="row" style="margin-bottom:10px">
+        <div class="grow">
+          <label class="note">Server base URL</label>
+          <input id="baseUrlInput" class="input" placeholder="http://127.0.0.1:3101" />
+        </div>
+        <button id="saveBaseUrlBtn" class="btn">Save</button>
+      </div>
+
+      <div class="row" style="gap:6px;margin:8px 0 12px">
+        <span class="pill" id="diagHealthChip">health: ?</span>
+        <span class="pill" id="diagToolsChip">tools: ?</span>
+        <span class="pill" id="diagRpcChip">rpc: ?</span>
+      </div>
+
+      <h3>Health</h3>
+      <pre id="healthPre" class="pre mono">{}</pre>
+      <h3>Tools</h3>
+      <pre id="diagToolsPre" class="pre mono">[]</pre>
+      <h3>RPC Response</h3>
+      <pre id="diagRpcPre" class="pre mono">{}</pre>
+    </div>
+  </div>
+
+  <footer>? <span id="year"></span> Cerebrum Cockpit</footer>
+
+  <script>
+  ;(() => {
+    const $ = (id) => document.getElementById(id)
+
+    const els = {
+      statusDot: $("statusDot"),
+      lastUpdated: $("lastUpdated"),
+      refreshBtn: $("refreshBtn"),
+      autoRefresh: $("autoRefresh"),
+      pasteBtn: $("pasteBtn"),
+      diagnosticsBtn: $("diagnosticsBtn"),
+      marketHeadline: $("marketHeadline"),
+      regimeBadge: $("regimeBadge"),
+      dqBadge: $("dqBadge"),
+      whatChanged: $("whatChanged"),
+      netExposure: $("netExposure"),
+      drawdown: $("drawdown"),
+      circuit: $("circuit"),
+      decision: $("decision"),
+      toolsPre: $("toolsPre"),
+      toolsCount: $("toolsCount"),
+      tradePre: $("tradePre"),
+      callTradeBtn: $("callTradeBtn"),
+      pasteDrawer: $("pasteDrawer"),
+      pasteArea: $("pasteArea"),
+      applyPasteBtn: $("applyPasteBtn"),
+      closePasteBtn: $("closePasteBtn"),
+      diagnosticsDrawer: $("diagnosticsDrawer"),
+      closeDiagBtn: $("closeDiagBtn"),
+      healthPre: $("healthPre"),
+      diagToolsPre: $("diagToolsPre"),
+      diagRpcPre: $("diagRpcPre"),
+      diagHealthChip: $("diagHealthChip"),
+      diagToolsChip: $("diagToolsChip"),
+      diagRpcChip: $("diagRpcChip"),
+      baseUrlInput: $("baseUrlInput"),
+      saveBaseUrlBtn: $("saveBaseUrlBtn"),
+    }
+
+    const STATE = {
+      baseUrl: localStorage.getItem('cockpit.baseUrl') || 'http://127.0.0.1:3101',
+      health: null,
+      tools: null,
+      trade: null,
+      pasted: null,
+      timer: null,
+      lastRpcOk: null,
+    }
+
+    function fmtPct(n) {
+      if (n == null || isNaN(Number(n))) return '?%'
+      const f = Number(n)
+      return `${f.toFixed(2)}%`
+    }
+
+    function nowTime() {
+      const d = new Date()
+      return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})
+    }
+
+    function badgeColorForRegime(regime) {
+      const r = String(regime || '').toUpperCase()
+      if (r.includes('BULL')) return { c: '#10b981', name: regime }
+      if (r.includes('BEAR')) return { c: '#ef4444', name: regime }
+      if (r.includes('VOL')) return { c: '#f59e0b', name: regime }
+      if (r.includes('NEUT')) return { c: '#6b7280', name: regime }
+      return { c: '#6b7280', name: regime || '?' }
+    }
+
+    function badgeColorForDQ(dq) {
+      const d = String(dq || '').toUpperCase()
+      if (d === 'OK') return { c: '#10b981', name: 'OK' }
+      if (d === 'DEGRADED') return { c: '#f59e0b', name: 'DEGRADED' }
+      if (d === 'BLOCKED') return { c: '#ef4444', name: 'BLOCKED' }
+      return { c: '#6b7280', name: 'UNKNOWN' }
+    }
+
+    function setBadge(el, title, color, text) {
+      const dot = el.querySelector('.dot')
+      const span = el.querySelector('span:nth-child(2)')
+      dot.style.background = color
+      span.textContent = `${title}: ${text}`
+    }
+
+    function setStatus(ok) {
+      els.statusDot.classList.toggle('ok', !!ok)
+    }
+
+    function renderMarket(market) {
+      const m = market || {}
+      els.marketHeadline.textContent = m.headline_one_liner || '?'
+      const r = badgeColorForRegime(m.regime)
+      setBadge(els.regimeBadge, 'Regime', r.c, r.name || '?')
+      const dq = badgeColorForDQ(m.data_quality)
+      setBadge(els.dqBadge, 'Data', dq.c, dq.name)
+      els.whatChanged.innerHTML = ''
+      const list = Array.isArray(m.what_changed_24h) ? m.what_changed_24h.slice(0,5) : []
+      for (const item of list) {
+        const li = document.createElement('li')
+        li.textContent = String(item)
+        els.whatChanged.appendChild(li)
+      }
+    }
+
+    function renderRisk(risk) {
+      const r = risk || {}
+      els.netExposure.textContent = fmtPct(r.net_exposure_pct)
+      els.drawdown.textContent = fmtPct(r.drawdown_pct)
+      els.circuit.textContent = r.circuit_breaker != null ? String(r.circuit_breaker) : '?'
+      els.decision.textContent = r.risk_decision || r.decision || '?'
+    }
+
+    function renderTools(tools) {
+      const t = Array.isArray(tools) ? tools : []
+      els.toolsCount.textContent = String(t.length)
+      els.toolsPre.textContent = JSON.stringify(t, null, 2)
+      els.diagToolsPre.textContent = JSON.stringify(t, null, 2)
+    }
+
+    function renderTrade(trade) {
+      els.tradePre.textContent = JSON.stringify(trade || {}, null, 2)
+      els.diagRpcPre.textContent = JSON.stringify(trade || {}, null, 2)
+    }
+
+    function setLastUpdated() {
+      els.lastUpdated.textContent = nowTime()
+    }
+
+    function openDrawer(d) { d.classList.add('open'); d.setAttribute('aria-hidden', 'false') }
+    function closeDrawer(d) { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true') }
+
+    async function safeFetch(url, options) {
+      try {
+        const res = await fetch(url, { ...options, headers: { 'content-type': 'application/json', ...(options && options.headers) } })
+        const ct = res.headers.get('content-type') || ''
+        const data = ct.includes('application/json') ? await res.json() : await res.text()
+        return { ok: res.ok, status: res.status, data }
+      } catch (e) {
+        return { ok: false, status: 0, data: { error: String(e && e.message || e) } }
+      }
+    }
+
+    function base(path) { return `${STATE.baseUrl}${path}` }
+
+    async function fetchAll() {
+      const [h, t] = await Promise.all([
+        safeFetch(base('/health')),
+        safeFetch(base('/tools')),
+      ])
+
+      STATE.health = h.data || null
+      STATE.tools = t.data || null
+
+      // status dot
+      const status = (STATE.health && (STATE.health.status || STATE.health.state)) || 'unknown'
+      const ok = String(status).toLowerCase() === 'ok'
+      setStatus(ok)
+
+      // diagnostics chips
+      els.diagHealthChip.textContent = `health: ${ok ? 'ok' : (status || '?')}`
+      els.diagHealthChip.style.borderColor = ok ? 'rgba(16,185,129,0.45)' : 'rgba(239,68,68,0.45)'
+
+      const toolsOk = Array.isArray(STATE.tools)
+      els.diagToolsChip.textContent = `tools: ${toolsOk ? STATE.tools.length : '?'}`
+
+      els.healthPre.textContent = JSON.stringify(STATE.health || {}, null, 2)
+      renderTools(STATE.tools)
+
+      // Best-effort mapping for market/risk from health payload if present
+      const market = STATE.health && (STATE.health.market || STATE.health.MarketUpdate || STATE.health.market_update) || {}
+      const risk = STATE.health && (STATE.health.risk || STATE.health.Risk || STATE.health.k3 || {}) || {}
+      renderMarket(market)
+      renderRisk(risk)
+
+      setLastUpdated()
+    }
+
+    async function callTrade() {
+      const body = {
+        jsonrpc: '2.0', id: 1, method: 'tools/call',
+        params: { name: 'get_trade_payload', arguments: {} }
+      }
+      const res = await safeFetch(base('/rpc'), { method: 'POST', body: JSON.stringify(body) })
+      STATE.trade = res.data
+      STATE.lastRpcOk = !!res.ok
+      els.diagRpcChip.textContent = `rpc: ${res.ok ? 'ok' : 'error'}`
+      els.diagRpcChip.style.borderColor = res.ok ? 'rgba(16,185,129,0.45)' : 'rgba(239,68,68,0.45)'
+      renderTrade(STATE.trade)
+    }
+
+    function applyPasted(json) {
+      try {
+        const data = typeof json === 'string' ? JSON.parse(json) : json
+        if (data.health) {
+          STATE.health = data.health
+          els.healthPre.textContent = JSON.stringify(STATE.health, null, 2)
+          const status = (STATE.health && (STATE.health.status || STATE.health.state)) || 'unknown'
+          setStatus(String(status).toLowerCase() === 'ok')
+        }
+        if (data.market) renderMarket(data.market)
+        if (data.risk) renderRisk(data.risk)
+        if (data.tools) { STATE.tools = data.tools; renderTools(STATE.tools) }
+        if (data.trade_payload) { STATE.trade = data.trade_payload; renderTrade(STATE.trade) }
+        setLastUpdated()
+      } catch (e) {
+        alert('Invalid JSON: ' + (e && e.message || e))
+      }
+    }
+
+    function setBaseUrl(u) {
+      if (!u) return
+      STATE.baseUrl = u.replace(/\/$/, '')
+      localStorage.setItem('cockpit.baseUrl', STATE.baseUrl)
+      els.baseUrlInput.value = STATE.baseUrl
+    }
+
+    function bind() {
+      els.refreshBtn.addEventListener('click', fetchAll)
+      els.autoRefresh.addEventListener('change', () => {
+        if (els.autoRefresh.checked) {
+          if (STATE.timer) clearInterval(STATE.timer)
+          STATE.timer = setInterval(fetchAll, 5000)
+          fetchAll()
+        } else {
+          if (STATE.timer) clearInterval(STATE.timer)
+          STATE.timer = null
+        }
+      })
+      els.pasteBtn.addEventListener('click', () => openDrawer(els.pasteDrawer))
+      els.diagnosticsBtn.addEventListener('click', () => openDrawer(els.diagnosticsDrawer))
+      els.closePasteBtn.addEventListener('click', () => closeDrawer(els.pasteDrawer))
+      els.closeDiagBtn.addEventListener('click', () => closeDrawer(els.diagnosticsDrawer))
+      els.applyPasteBtn.addEventListener('click', () => applyPasted(els.pasteArea.value))
+      els.callTradeBtn.addEventListener('click', callTrade)
+      els.saveBaseUrlBtn.addEventListener('click', () => setBaseUrl(els.baseUrlInput.value.trim()))
+      els.baseUrlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') setBaseUrl(els.baseUrlInput.value.trim()) })
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeDrawer(els.pasteDrawer); closeDrawer(els.diagnosticsDrawer) } })
+    }
+
+    function init() {
+      document.title = 'Cerebrum Cockpit'
+      document.getElementById('year').textContent = String(new Date().getFullYear())
+      els.baseUrlInput.value = STATE.baseUrl
+      bind()
+      fetchAll()
+    }
+
+    init()
+  })()
+  </script>
+</body>
+</html>
